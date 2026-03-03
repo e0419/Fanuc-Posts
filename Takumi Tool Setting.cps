@@ -87,6 +87,28 @@ properties = {
       value      : 0.01,
       scope      : "post"
     },
+    _checkTools: {
+      title      : "Check tool gauge lengths at start",
+      description: "Compare simulated gauge length to store tool offsets",
+      type       : "boolean",
+      value      : true,
+      scope      : "post"
+    },
+    _toolLengthTolerancePositive: {
+      title      : "Tool length tolerance (long side)",
+      description: "Specifies the tolerance for which gauge length will raise an alarm.",
+      type       : "spatial",
+      value      : 0.25,
+      scope      : "post"
+    },
+    _toolLengthToleranceNegative: {
+      title      : "Tool length tolerance (short side)",
+      description: "Specifies the tolerance for which gauge length will raise an alarm.",
+      type       : "spatial",
+      value      : 0.1,
+      scope      : "post"
+    },
+
     //standard options
   writeMachine: {
     title      : "Write machine",
@@ -307,13 +329,14 @@ var coolants = [
   //Ring = M18
   //Flood = M8
   //Through tool = M7
-  //ATS = M51
+  //Air Blast = M51  
+  //ATS = M12
   //Air Ring = M50
   {id:COOLANT_FLOOD, on:[8]},
   {id:COOLANT_MIST, on:[18], off:[9]},
   {id:COOLANT_THROUGH_TOOL, on:[7], off:[9]},
   {id:COOLANT_AIR, on:[51], off:[52]},
-  {id:COOLANT_AIR_THROUGH_TOOL, on:[12], off:[9]},
+  {id:COOLANT_AIR_THROUGH_TOOL, on:[51,12], off:[9]},
   {id:COOLANT_SUCTION},
   {id:COOLANT_FLOOD_MIST, on:[18,8], off:[9]},
   {id:COOLANT_FLOOD_THROUGH_TOOL, on:[7,8], off:[9]},
@@ -951,6 +974,35 @@ function onOpen() {
     writeBlock(("(END OF TOOL SETTING CYCLES)"));
     writeln("");
   }
+
+// Compare stored offsets to simulated gauge length
+  if (getProperty("_checkTools")) {
+    var tools = getToolTable();
+    var firstToolOffset = 2200;
+    if (tools.getNumberOfTools() > 0) {
+      writeln("");
+      writeComment(localize("CHECKING GAUGE LENGTHS"));
+      for (var i = 0; i < tools.getNumberOfTools(); ++i) {
+        var tool = tools.getTool(i);
+        writeln("IF [#" +
+          + (firstToolOffset + tool.number)
+          + " LT "
+          + xyzFormat.format(tool.bodyLength + tool.holderLength - getProperty("_toolLengthToleranceNegative"))
+          + "] THEN #3000 = 1 (TOOL " + tool.number + " TOO SHORT)"        
+        );
+        writeln("IF [#" +
+          + (firstToolOffset + tool.number)
+          + " GT "
+          + xyzFormat.format(tool.bodyLength + tool.holderLength + getProperty("_toolLengthTolerancePositive"))
+          + "] THEN #3000 = 1 (TOOL " + tool.number + " TOO LONG)"        
+        );
+      }
+    }
+    writeln(("(END OF GAUGE LENGTH CHECKS)"));
+    writeln("");
+    writeln("");
+  }
+
 
   if (false /*getProperty("useMultiAxisFeatures")*/) {
     var failed = false;
@@ -2005,7 +2057,7 @@ function onSection() {
         var firstToolNumber = section.getTool().number;
         if (tool.number != firstToolNumber) {
           skipBlock = !insertToolCall;
-          writeBlock("T" + toolFormat.format(firstToolNumber));
+          writeBlock("T" + toolFormat.format(firstToolNumber) + " (PRECALL)");
         }
       }
     }
@@ -2033,6 +2085,7 @@ function onSection() {
         writeBlock(
           sOutput.format(spindleSpeed), mFormat.format(tool.clockwise ? 3 : 4)
         );
+      writeComment("SFM=" + ((xyzFormat.format(spindleSpeed)*xyzFormat.format(tool.diameter)*3.14/12))+" SFPM");
       }
       onCommand(COMMAND_START_CHIP_TRANSPORT);
       if (forceMultiAxisIndexing || !is3D() || machineConfiguration.isMultiAxisConfiguration()) {
@@ -3683,3 +3736,4 @@ function onClose() {
 function setProperty(property, value) {
   properties[property].current = value;
 }
+
