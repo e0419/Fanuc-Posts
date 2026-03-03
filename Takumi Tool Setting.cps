@@ -19,7 +19,7 @@ minimumRevision = 45793;
 
 longDescription = "Generic post for Fanuc.";
 
-extension = "";
+extension = ".NC";
 programNameIsInteger = true;
 setCodePage("ascii");
 
@@ -108,7 +108,8 @@ properties = {
       value      : 0.1,
       scope      : "post"
     },
-
+    
+    
     //standard options
   writeMachine: {
     title      : "Write machine",
@@ -198,7 +199,7 @@ properties = {
     title      : "Parametric feed",
     description: "Specifies the feed value that should be output using a Q value.",
     type       : "boolean",
-    value      : false,
+    value      : true,
     scope      : "post"
   },
   showNotes: {
@@ -275,7 +276,7 @@ properties = {
     title      : "Safe start all operations",
     description: "Write optional blocks at the beginning of all operations that include all commands to start program.",
     type       : "boolean",
-    value      : false,
+    value      : true,
     scope      : "post"
   },
   safePositionMethod: {
@@ -329,14 +330,14 @@ var coolants = [
   //Ring = M18
   //Flood = M8
   //Through tool = M7
-  //Air Blast = M51  
+  //Air Blast = M51
   //ATS = M12
   //Air Ring = M50
   {id:COOLANT_FLOOD, on:[8]},
   {id:COOLANT_MIST, on:[18], off:[9]},
   {id:COOLANT_THROUGH_TOOL, on:[7], off:[9]},
   {id:COOLANT_AIR, on:[51], off:[52]},
-  {id:COOLANT_AIR_THROUGH_TOOL, on:[51,12], off:[9]},
+  {id:COOLANT_AIR_THROUGH_TOOL, on:[12], off:[9]},
   {id:COOLANT_SUCTION},
   {id:COOLANT_FLOOD_MIST, on:[18,8], off:[9]},
   {id:COOLANT_FLOOD_THROUGH_TOOL, on:[7,8], off:[9]},
@@ -401,7 +402,7 @@ var gRotationModal = createModal({
 }, gFormat); // modal group 16 // G68-G69
 
 // fixed settings
-var firstFeedParameter = 500;
+var firstFeedParameter = 700;
 var useMultiAxisFeatures = true;
 var forceMultiAxisIndexing = false; // force multi-axis indexing for 3D programs
 var maximumLineLength = 80; // the maximum number of charaters allowed in a line
@@ -515,7 +516,15 @@ function writeComment(text) {
 
 function writeToolCycleBlock(tool) {
   writeOptionalBlock("T" + toolFormat.format(tool.number), mFormat.format(6)); // get tool
+  //go to window 
+  writetooltowindow(tool);
   writeOptionalBlock(mFormat.format(0)); // wait for operator
+}
+
+function writetooltowindow(tool){
+  writeOptionalBlock("G0 G53 Z0.");
+  writeOptionalBlock("G0 G53 Y-36.9");
+  writeOptionalBlock("G0 G53 Z-.25");
 }
 
 function prepareForToolCheck() {
@@ -583,6 +592,10 @@ function getProbingType(toolType){
       return "on-center";
     case TOOL_TAP_LEFT_HAND:
       return "on-center";
+    case TOOL_RADIUS_MILL:
+      return "on-center";  
+    case TOOL_MILLING_RADIUS:
+      return "on-center";
     //nothing
     default:
       error(localize("tooltype not found"))
@@ -631,7 +644,7 @@ function writeToolMeasureBlock(tool, preMeasure) {
         gFormat.format(65),
         "P9857",
         //K = approx tool length, if not used, tool length is pulled from offset value
-        "K12.0", //max tool length
+        "K" + (xyzFormat.format(tool.bodyLength + tool.holderLength)+1), //set to simulated length + 1 inch
         "Q9.0", //Q = overtravel. 9in overtravel allows for tools 12 to 3 inches
         //R = dia (+R = RH, -R = LH) - enables rotation
         conditional((probingType == "off-center"), "R"+ getSpinDirection(tool) + xyzFormat.format(tool.diameter)),
@@ -647,7 +660,7 @@ function writeToolMeasureBlock(tool, preMeasure) {
         "M21",
         "C0", //automated
         conditional((probingType == "off-center"), "D" + getSpinDirection(tool) + xyzFormat.format(tool.diameter)), //R = dia (+R = RH, -R = LH) - enables rotation
-        "Y12.0", //use max tool length as approximate length
+        "Y" + (xyzFormat.format(tool.bodyLength + tool.holderLength)+1), //set to simulated length + 1 inch
         "Q9.0", //9in overtravel allows for tools 12 to 3 inches
         "T" + toolFormat.format(tool.number),  //tool number to set, defaults to current tool.
         comment
@@ -928,7 +941,20 @@ function onOpen() {
           comment += " - " + localize("ZMIN") + "=" + xyzFormat.format(zRanges[tool.number].getMinimum());
         }
         comment += " - " + getToolTypeName(tool.type);
+        comment +=" - OAL=" + xyzFormat.format(tool.bodyLength + tool.holderLength);
+        comment +=" - Holder=" + xyzFormat.format(tool.holderLength);
+        comment += " - SO=" + xyzFormat.format (tool.bodyLength);
         writeComment(comment);
+
+        if ((tool.bodyLength + tool.holderLength)>13.0){
+          //alarm out for a long tool
+          writeln("#3000 = 1 (TOOL " + tool.number + " TOO LONG FOR TOOL CHANGER & AUTO SET! DO NOT USE AUTO SET CYLES!)");
+        }
+        if ((tool.bodyLength + tool.holderLength)<3.0){
+          //alarm out for a short tool
+          writeln("#3000 = 1 (TOOL " + tool.number + " TOO SHORT, VERIFY TOOL IN SIMULATION!)");
+        }
+
       }
     }
   }
@@ -961,7 +987,7 @@ function onOpen() {
         }
         comment += " - " + getToolTypeName(tool.type);
         writeComment(comment);
-        if (getProperty("_measureTools")) {
+                if (getProperty("_measureTools")) {
           writeToolMeasureBlock(tool, true);
         } else {
           writeToolCycleBlock(tool);
@@ -975,7 +1001,7 @@ function onOpen() {
     writeln("");
   }
 
-// Compare stored offsets to simulated gauge length
+    // Compare stored offsets to simulated gauge length
   if (getProperty("_checkTools")) {
     var tools = getToolTable();
     var firstToolOffset = 2200;
@@ -1511,7 +1537,7 @@ function setWorkPlane(abc) {
         abcFormat.areDifferent(abc.y, currentWorkPlaneABC.y) ||
         abcFormat.areDifferent(abc.z, currentWorkPlaneABC.z))) {
     if (operationNeedsSafeStart) {
-      _skipBlock = true;
+      _skipBlock = false;//true; //edited 8-7-24
     } else {
       return; // no change
     }
@@ -1979,7 +2005,7 @@ function onSection() {
 
   if (operationNeedsSafeStart) {
     if (!retracted) {
-      skipBlock = true;
+      skipBlock = false; //true;
       writeRetract(Z);
     }
   }
@@ -1996,11 +2022,16 @@ function onSection() {
     if ((tool.number > 200 && tool.number < 1000) || tool.number > 9999) {
       warning(localize("Tool number out of range."));
     }
-    skipBlock = !insertToolCall;
+    skipBlock = false; //!insertToolCall;
     writeToolBlock(
       "T" + toolFormat.format(tool.number),
       mFormat.format(6)
     );
+
+    //call macro to check active length offset - SN 8-8-25
+    writeBlock("M706 (CHECKING TOOL LENGTH OFFSET VS MINIMUM - SEE O9021)");
+    writeln("");
+
     if (tool.comment) {
       writeComment(tool.comment);
     }
@@ -2049,14 +2080,14 @@ function onSection() {
     if (getProperty("preloadTool")) {
       var nextTool = getNextTool(tool.number);
       if (nextTool) {
-        skipBlock = !insertToolCall;
+        skipBlock = false; //!insertToolCall;
         writeBlock("T" + toolFormat.format(nextTool.number));
       } else {
         // preload first tool
         var section = getSection(0);
         var firstToolNumber = section.getTool().number;
         if (tool.number != firstToolNumber) {
-          skipBlock = !insertToolCall;
+          skipBlock = false; //!operationNeedsSafeStart; //!insertToolCall;
           writeBlock("T" + toolFormat.format(firstToolNumber) + " (PRECALL)");
         }
       }
@@ -2081,11 +2112,11 @@ function onSection() {
       (getParameter("operation:cycleType") == "left-tapping") ||
       (getParameter("operation:cycleType") == "tapping-with-chip-breaking"));
       if (!tapping || (tapping && !(getProperty("useRigidTapping") == "without"))) {
-        skipBlock = !outputSpindleSpeed;
+        skipBlock = false; //!operationNeedsSafeStart; //!outputSpindleSpeed;
         writeBlock(
           sOutput.format(spindleSpeed), mFormat.format(tool.clockwise ? 3 : 4)
         );
-      writeComment("SFM=" + ((xyzFormat.format(spindleSpeed)*xyzFormat.format(tool.diameter)*3.14/12))+" SFPM");
+        writeComment("SFM=" + xyzFormat.format((xyzFormat.format(spindleSpeed)*xyzFormat.format(tool.diameter)*3.14/12))+" SFPM");
       }
       onCommand(COMMAND_START_CHIP_TRANSPORT);
       if (forceMultiAxisIndexing || !is3D() || machineConfiguration.isMultiAxisConfiguration()) {
@@ -2097,14 +2128,14 @@ function onSection() {
   // wcs
   if (insertToolCall || operationNeedsSafeStart) { // force work offset when changing tool
     currentWorkOffset = undefined;
-    skipBlock = operationNeedsSafeStart && !newWorkOffset && !insertToolCall;
+    skipBlock = false; //!operationNeedsSafeStart; // && !newWorkOffset && !insertToolCall;   //just do it anyways
   }
 
   if (currentSection.workOffset != currentWorkOffset) {
     if (cancelTiltFirst & !skipBlock) {
       cancelWorkPlane();
     }
-    if (!skipBlock) {
+    if (operationNeedsSafeStart){   //!skipBlock) {
       forceWorkPlane();
     }
     writeBlock(currentSection.wcs);
@@ -3381,6 +3412,7 @@ function onCommand(command) {
       );
       toolChecked = true;
       lengthCompensationActive = false; // macro 9853 cancels tool length compensation
+      //operationNeedsSafeStart = true; //added for spindle start
     }
     return;
   case COMMAND_TOOL_MEASURE:
@@ -3722,7 +3754,7 @@ function onClose() {
   }
 
   writeRetract(X, Y); // return to home
-
+  writeBlock("G05.1 Q1 R2"); //write line to reset AICC to R2 (02-23-2025)
   onImpliedCommand(COMMAND_END);
   onImpliedCommand(COMMAND_STOP_SPINDLE);
   writeBlock(mFormat.format(30)); // stop program, spindle stop, coolant off
@@ -3736,4 +3768,3 @@ function onClose() {
 function setProperty(property, value) {
   properties[property].current = value;
 }
-
