@@ -35,22 +35,22 @@ allowHelicalMoves = true;
 allowedCircularPlanes = undefined; // allow any circular motion
 highFeedrate = (unit == IN) ? 500 : 5000;
 
-//groupDefinitions = {
+groupDefinitions = {
 //  custom: {title:"Custom", collapsed:false, order:1},
 //  standard: {title:"Standard", collapsed:false, order:2}
 //};
 
 //standardGroupDefinitions = {
-//  custom: {title:"Custom", collapsed:false, order:1},
-//  //standard: {title:"Standard", collapsed:false, order:-1},
+    startup: {title:"Startup", collapsed:false, order:1},
+    standard: {title:"Standard", collapsed:false, order:-1},
 //  operation    : {title: "Operation", description: "Operation options", collapsed: true, order: 10}, 
 //  configuration: {title: "Configuration", description: "Configuration options", collapsed: true, order: 15},
 //  preferences  : {title: "Preferences", description: "User preferences", collapsed: false, order: 20},
 //  homePositions: {title: "Safe retracts and home positioning", description: "Settings related to safe retracts and home positioning", collapsed: true, order: 30},
 //  multiAxis    : {title: "Multi-axis", description: "Multi-axis settings", collapsed: true, order: 40},
-//  formats      : {title: "Formats", description: "NC code format settings", collapsed: true, order: 50},
-//  probing      : {title: "Probing and inspection", description: "Probing and inspection settings", collapsed: true, order: 60}
-//};
+    formats      : {title: "Formats", description: "NC code format settings", collapsed: true, order: 50},
+    probing      : {title: "Probing and inspection", description: "Probing and inspection settings", collapsed: true, order: 60}
+};
 
 // user-defined properties
 properties = {
@@ -60,14 +60,16 @@ properties = {
       description: "Cycle through each tool used at the beginning of the program when block delete is turned off.",
       type       : "boolean",
       value      : true,
-      scope      : "post"
+      scope      : "post",
+      group      : "startup"
     },
     _measureTools: {
       title      : "Optionally measure tools at start",
       description: "Measure each tool used at the beginning of the program when block delete is turned off.",
       type       : "boolean",
       value      : true,
-      scope      : "post"
+      scope      : "post",
+      group      : "startup"
     },
     _measureMethod: {
       title      : "Toolsetting Method",
@@ -78,35 +80,40 @@ properties = {
         {title:"P9921", id:"P9921"}
       ],
       value      : "P9921",
-      scope      : "post"
+      scope      : "post",
+      group      : "probing"
     },
     _toolBreakageTolerance: {
       title      : "Tool breakage tolerance",
       description: "Specifies the tolerance for which tool break detection will raise an alarm. Tool breakage must be added as ManualNC cycle.",
       type       : "spatial",
       value      : 0.01,
-      scope      : "post"
+      scope      : "post",
+      group      : "probing"
     },
     _checkTools: {
       title      : "Check tool gauge lengths at start",
       description: "Compare simulated gauge length to store tool offsets",
       type       : "boolean",
       value      : true,
-      scope      : "post"
+      scope      : "post",
+      group      : "startup"
     },
     _toolLengthTolerancePositive: {
       title      : "Tool length tolerance (long side)",
       description: "Specifies the tolerance for which gauge length will raise an alarm.",
       type       : "spatial",
       value      : 0.25,
-      scope      : "post"
+      scope      : "post",
+      group      : "startup"
     },
     _toolLengthToleranceNegative: {
       title      : "Tool length tolerance (short side)",
       description: "Specifies the tolerance for which gauge length will raise an alarm.",
       type       : "spatial",
       value      : 0.1,
-      scope      : "post"
+      scope      : "post",
+      group      : "startup"
     },
     
     
@@ -116,98 +123,111 @@ properties = {
     description: "Output the machine settings in the header of the code.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   writeTools: {
     title      : "Write tool list",
     description: "Output a tool list in the header of the code.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   preloadTool: {
     title      : "Preload tool",
     description: "Preloads the next tool at a tool change (if any).",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   showSequenceNumbers: {
     title      : "Use sequence numbers",
     description: "Use sequence numbers for each block of outputted code.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   sequenceNumberStart: {
     title      : "Start sequence number",
     description: "The number at which to start the sequence numbers.",
     type       : "integer",
     value      : 10,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   sequenceNumberIncrement: {
     title      : "Sequence number increment",
     description: "The amount by which the sequence number is incremented by in each block.",
     type       : "integer",
     value      : 5,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   optionalStop: {
     title      : "Optional stop",
     description: "Outputs optional stop code during when necessary in the code.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   o8: {
     title      : "8 Digit program number",
     description: "Specifies that an 8 digit program number is needed.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   separateWordsWithSpace: {
     title      : "Separate words with space",
     description: "Adds spaces between words if 'yes' is selected.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   allow3DArcs: {
     title      : "Allow 3D arcs",
     description: "Specifies whether 3D circular arcs are allowed.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   useRadius: {
     title      : "Radius arcs",
     description: "If yes is selected, arcs are outputted using radius values rather than IJK.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   forceIJK: {
     title      : "Force IJK",
     description: "Force the output of IJK for G2/G3 when not using R mode.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "standard"
   },
   useParametricFeed: {
     title      : "Parametric feed",
     description: "Specifies the feed value that should be output using a Q value.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   showNotes: {
     title      : "Show notes",
     description: "Writes operation notes as comments in the outputted code.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "formats"
   },
   useSmoothing: {
     title      : "Use smoothing",
@@ -229,28 +249,32 @@ properties = {
       {title:"Level 10", id:"10"},
     ],
     value: "-1",
-    scope: "post"
+    scope: "post",
+    group      : "standard"
   },
   usePitchForTapping: {
     title      : "Use pitch for tapping",
     description: "Enables the use of pitch instead of feed for the F-word in canned tapping cycles. Your CNC control must be setup for pitch mode!",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   useG95: {
     title      : "Use G95",
     description: "Use IPR/MPR instead of IPM/MPM.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   useG54x4: {
     title      : "Use G54.4",
     description: "Fanuc 30i supports G54.4 for workpiece error compensation.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post"    ,
+    group      : "standard"
   },
   useSubroutines: {
     title      : "Use subroutines",
@@ -263,21 +287,24 @@ properties = {
       {title:"Patterns", id:"patterns"}
     ],
     value: "none",
-    scope: "post"
+    scope: "post",
+    group      : "standard"
   },
   useFilesForSubprograms: {
     title      : "Use files for subroutines",
     description: "If enabled, subroutines will be saved as individual files.",
     type       : "boolean",
     value      : false,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   },
   safeStartAllOperations: {
     title      : "Safe start all operations",
     description: "Write optional blocks at the beginning of all operations that include all commands to start program.",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "startup"
   },
   safePositionMethod: {
     title      : "Safe Retracts",
@@ -289,7 +316,8 @@ properties = {
       // {title: "Clearance Height", id: "clearanceHeight"}
     ],
     value: "G28",
-    scope: "post"
+    scope: "post",
+    group      : "standard"
   },
   useRigidTapping: {
     title      : "Use rigid tapping",
@@ -301,14 +329,16 @@ properties = {
       {title:"Without spindle direction", id:"without"}
     ],
     value: "yes",
-    scope: "post"
+    scope: "post",
+    group      : "standard"
   },
   singleResultsFile: {
     title      : "Create single results file",
     description: "Set to false if you want to store the measurement results for each probe / inspection toolpath in a separate file",
     type       : "boolean",
     value      : true,
-    scope      : "post"
+    scope      : "post",
+    group      : "standard"
   }
 };
 
