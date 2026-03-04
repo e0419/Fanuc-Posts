@@ -42,7 +42,7 @@ groupDefinitions = {
 
 //standardGroupDefinitions = {
     startup: {title:"Startup", collapsed:false, order:1},
-    standard: {title:"Standard", collapsed:false, order:-1},
+    standard: {title:"Standard", collapsed:true, order:-1},
 //  operation    : {title: "Operation", description: "Operation options", collapsed: true, order: 10}, 
 //  configuration: {title: "Configuration", description: "Configuration options", collapsed: true, order: 15},
 //  preferences  : {title: "Preferences", description: "User preferences", collapsed: false, order: 20},
@@ -64,7 +64,7 @@ properties = {
       group      : "startup"
     },
     _measureTools: {
-      title      : "Optionally measure tools at start",
+      title      : "Optionally measure tools at start - SIMULATE ALL HOLDERS",
       description: "Measure each tool used at the beginning of the program when block delete is turned off.",
       type       : "boolean",
       value      : true,
